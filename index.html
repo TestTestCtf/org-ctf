@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Organization Under Attack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* concept: dark terminal console with neon status accents, one level at a time */
+  --bg:#0a0a12;--panel:#12121f;--panel2:#181829;--fg:#F2F2F7;--muted:#9a9ab0;--line:#262640;
+  --cyan:#00E5FF;--mag:#FF2BD6;--lime:#B6FF3B;--warn:#FFB020;
+  --display:'Manrope',system-ui,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--fg);font-family:var(--display);font-size:16px;line-height:1.5;
+  padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3,p{margin:0}
+h1{font-size:clamp(28px,5vw,44px);font-weight:800;line-height:1.05;text-wrap:balance}
+h2{font-size:clamp(22px,3.4vw,30px);font-weight:800;line-height:1.15;text-wrap:balance}
+h3{font-size:18px;font-weight:800}
+.eyebrow{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan);font-weight:600}
+.muted{color:var(--muted)}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;
+  border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:12px 16px}
+.stat{display:flex;flex-direction:column;min-width:0}
+.stat b{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab{flex:1 1 0;min-width:64px;border:1px solid var(--line);background:var(--panel);color:var(--muted);
+  border-radius:12px;padding:10px 8px;font:inherit;font-weight:600;cursor:pointer;text-align:center}
+.tab[aria-current="true"]{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 0 1px var(--cyan) inset,0 0 18px rgba(0,229,255,.25)}
+.tab.done{border-color:var(--lime);color:var(--lime)}
+.tab.locked{opacity:.4;cursor:not-allowed}
+.panel{border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:clamp(16px,3vw,28px);display:flex;flex-direction:column;gap:16px}
+.mono{font-family:var(--mono);font-size:14px}
+.box{background:#0d0d18;border:1px solid var(--line);border-radius:12px;padding:14px;overflow-x:auto}
+pre{margin:0;font-family:var(--mono);font-size:13px;line-height:1.6;white-space:pre}
+button.btn{font:inherit;font-weight:700;border-radius:10px;border:1px solid var(--cyan);background:transparent;color:var(--cyan);
+  padding:10px 16px;cursor:pointer}
+button.btn:hover{background:rgba(0,229,255,.12)}
+button.btn.mag{border-color:var(--mag);color:var(--mag)}
+button.btn.mag:hover{background:rgba(255,43,214,.12)}
+button.btn.fill{background:var(--lime);border-color:var(--lime);color:#0a0a12}
+button.btn.fill:hover{background:#c8ff63}
+button.btn.ghost{border-color:var(--line);color:var(--muted)}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+input.field,textarea.field{width:100%;background:#0d0d18;border:1px solid var(--line);border-radius:10px;color:var(--fg);
+  font-family:var(--mono);font-size:15px;padding:12px 14px}
+textarea.field{min-height:84px;resize:vertical}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row>.grow{flex:1 1 220px;min-width:0}
+.msg{border-radius:10px;padding:12px 14px;font-weight:600}
+.msg.ok{background:rgba(182,255,59,.12);border:1px solid var(--lime);color:var(--lime)}
+.msg.bad{background:rgba(255,43,214,.1);border:1px solid var(--mag);color:var(--mag)}
+.msg.info{background:rgba(0,229,255,.08);border:1px solid var(--cyan);color:var(--cyan)}
+.lesson{border-left:3px solid var(--lime);padding:4px 0 4px 14px;color:var(--fg)}
+.lesson b{color:var(--lime)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.num{font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto}
+.urlrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;
+  border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:#0d0d18}
+.urlrow .u{font-family:var(--mono);font-size:16px;min-width:0;overflow-wrap:anywhere}
+.urlrow .r{font-family:var(--mono);font-size:13px;color:var(--cyan);width:100%}
+.tx{border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;background:#0d0d18}
+.tx .sum{display:flex;flex-direction:column;gap:2px}
+.tx .big{font-size:20px;font-weight:800}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.hero{display:flex;flex-direction:column;gap:14px}
+.final{align-items:flex-start}
+.code{font-family:var(--mono);font-size:20px;color:var(--lime);background:#0d0d18;border:1px dashed var(--lime);border-radius:12px;padding:14px 16px;overflow-wrap:anywhere}
+@media (prefers-reduced-motion:no-preference){.panel{animation:in .25s ease-out}@keyframes in{from{opacity:.0;transform:translateY(4px)}to{opacity:1;transform:none}}}
+</style>
+
+</head>
+<body>
+<div class="wrap" id="app">
+  <header class="hero">
+    <p class="eyebrow">Digital Finance Security · мини-CTF</p>
+    <h1>Организация под атакой</h1>
+    <p class="muted">Пять заданий по мотивам разобранных кейсов. Все данные учебные. Находите флаг формата <span class="mono" style="color:var(--lime)">DF{...}</span> и вводите его. Подсказка стоит 30 очков.</p>
+  </header>
+
+  <div class="bar" id="bar">
+    <div class="stat"><b id="sNick">—</b><span>игрок</span></div>
+    <div class="stat"><b id="sScore">0</b><span>очки</span></div>
+    <div class="stat"><b id="sTime">00:00</b><span>время</span></div>
+    <div class="stat"><b id="sSolved">0 / 5</b><span>решено</span></div>
+  </div>
+
+  <nav class="tabs" id="tabs" aria-label="Уровни"></nav>
+  <main id="stage"></main>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- helpers ---------- */
+function h(s){s=String(s).trim().toLowerCase();var x=0x811c9dc5;for(var i=0;i<s.length;i++){x^=s.charCodeAt(i);x=Math.imul(x,16777619)>>>0}return x.toString(16)}
+function el(tag,attrs,kids){var e=document.createElement(tag);attrs=attrs||{};
+  Object.keys(attrs).forEach(function(k){
+    if(k==='class')e.className=attrs[k];
+    else if(k==='text')e.textContent=attrs[k];
+    else if(k.slice(0,2)==='on')e.addEventListener(k.slice(2),attrs[k]);
+    else e.setAttribute(k,attrs[k]);
+  });
+  (kids||[]).forEach(function(c){e.appendChild(typeof c==='string'?document.createTextNode(c):c)});
+  return e}
+function b64enc(s){try{return btoa(unescape(encodeURIComponent(s)))}catch(e){return ''}}
+function b64dec(s){try{return decodeURIComponent(escape(atob(s.trim())))}catch(e){return null}}
+function fmt(t){var m=Math.floor(t/60),s=t%60;return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')}
+function store(k,v){return null}
+
+/* ---------- state ---------- */
+var LEVELS=[
+ {id:1,name:'Подделка',pts:100,hash:'c3f5239b'},
+ {id:2,name:'Антифрод',pts:150,hash:'a1bda7e6'},
+ {id:3,name:'Письмо',pts:150,hash:'ae82a10e'},
+ {id:4,name:'Шифр',pts:150,hash:'337446d1'},
+ {id:5,name:'Перебор',pts:150,hash:'981a5ffb'}
+];
+var saved=store('dfctf')||{};
+var S={nick:saved.nick||'',cur:saved.cur||0,solved:saved.solved||{},hints:saved.hints||{},elapsed:saved.elapsed||0,started:!!saved.nick,done:!!saved.done};
+var EXPIRES=Date.parse('2026-11-18T13:00:00+05:00');function closed(){return Date.now()>=EXPIRES}var tick=null;var idleNotice=false;var lastAct=Date.now();var IDLE_MS=5*60*1000;
+function persist(){store('dfctf',{nick:S.nick,cur:S.cur,solved:S.solved,hints:S.hints,elapsed:S.elapsed,done:S.done})}
+function score(){var t=0;LEVELS.forEach(function(l,i){if(S.solved[i])t+=l.pts-(S.hints[i]?30:0)});return Math.max(0,t)}
+function solvedCount(){return Object.keys(S.solved).filter(function(k){return S.solved[k]}).length}
+function startTimer(){if(tick)return;tick=setInterval(function(){if(S.done)return;S.elapsed++;document.getElementById('sTime').textContent=fmt(S.elapsed);if(S.elapsed%10===0)persist()},1000)}
+function refreshBar(){
+  document.getElementById('sNick').textContent=S.nick||'—';
+  document.getElementById('sScore').textContent=score();
+  document.getElementById('sTime').textContent=fmt(S.elapsed);
+  document.getElementById('sSolved').textContent=solvedCount()+' / 5';
+  var tabs=document.getElementById('tabs');tabs.textContent='';
+  LEVELS.forEach(function(l,i){
+    var unlocked=S.started&&(i===0||S.solved[i-1]||S.solved[i]);
+    var b=el('button',{class:'tab'+(S.solved[i]?' done':'')+(unlocked?'':' locked'),type:'button',text:(i+1)+'. '+l.name,
+      onclick:function(){if(unlocked&&!S.done){S.cur=i;persist();render()}}});
+    if(S.cur===i&&!S.done)b.setAttribute('aria-current','true');
+    tabs.appendChild(b);
+  });
+}
+
+/* ---------- shared pieces ---------- */
+function flagForm(i,onOk){
+  var box=el('div',{class:'row'});
+  var inp=el('input',{class:'field grow',id:'flag'+i,type:'text',placeholder:'DF{...}',autocomplete:'off',spellcheck:'false','aria-label':'Флаг'});
+  var res=el('div');
+  function check(){
+    var v=inp.value;
+    if(h(v)===LEVELS[i].hash){
+      S.solved[i]=true;persist();refreshBar();
+      res.textContent='';res.appendChild(el('div',{class:'msg ok',text:'Флаг принят: +'+(LEVELS[i].pts-(S.hints[i]?30:0))+' очков'}));
+      onOk&&onOk();
+    }else{
+      res.textContent='';res.appendChild(el('div',{class:'msg bad',text:'Неверно. Проверьте формат и внимательнее прочитайте данные.'}));
+    }
+  }
+  inp.addEventListener('keydown',function(e){if(e.key==='Enter')check()});
+  box.appendChild(inp);
+  box.appendChild(el('button',{class:'btn fill',type:'button',text:'Сдать флаг',onclick:check}));
+  var wrap=el('div',{style:'display:flex;flex-direction:column;gap:10px'},[box,res]);
+  return wrap;
+}
+function hintBlock(i,text){
+  var out=el('div');
+  function draw(){
+    out.textContent='';
+    if(S.hints[i]){out.appendChild(el('div',{class:'msg info',text:'Подсказка: '+text}))}
+    else out.appendChild(el('button',{class:'btn ghost',type:'button',text:'Взять подсказку (−30 очков)',onclick:function(){S.hints[i]=true;persist();refreshBar();draw()}}));
+  }
+  draw();return out}
+function lesson(i,txt){
+  return el('div',{class:'lesson'},[el('b',{text:'Что это значит. '}),document.createTextNode(txt)]);
+}
+function nextBtn(i){
+  var last=i===LEVELS.length-1;
+  return el('button',{class:'btn',type:'button',text:last?'Завершить игру':'Следующий уровень',onclick:function(){
+    if(last){S.done=true;persist();render()}else{S.cur=i+1;persist();render()}}});
+}
+function after(i,box,txt){
+  box.textContent='';
+  box.appendChild(lesson(i,txt));
+  box.appendChild(nextBtn(i));
+}
+
+/* ---------- levels ---------- */
+function L1(){
+  var p=el('section',{class:'panel'});
+  p.appendChild(el('p',{class:'eyebrow',text:'Уровень 1 · фишинг'}));
+  p.appendChild(el('h2',{text:'Одна из ссылок в SMS ведёт на подделку'}));
+  p.appendChild(el('p',{class:'muted',text:'Глазами подмену не увидеть. Нажимайте «Разобрать», инструмент покажет, как адрес видит браузер. Флаг: DF{адрес подделки в таком виде, как его показал инструмент}.'}));
+  var list=[['altair-pay.amir',false],['zhetysu-fin.amir',false],['aruna-pay.amir',false],['tеngri-pay.amir',true],['qyran-fin.amir',false],['sunkar-pay.amir',false]];
+  var box=el('div',{style:'display:flex;flex-direction:column;gap:10px'});
+  list.forEach(function(it){
+    var row=el('div',{class:'urlrow'});
+    var u=el('span',{class:'u',text:'https://'+it[0]+'/login'});
+    var r=el('span',{class:'r',hidden:''});
+    var b=el('button',{class:'btn',type:'button',text:'Разобрать',onclick:function(){
+      var host;try{host=new URL('https://'+it[0]).hostname}catch(e){host='ошибка разбора'}
+      r.hidden=false;r.textContent='Для браузера: '+host+(host.indexOf('xn--')===0?'   ← есть символы другого алфавита':'');
+    }});
+    row.appendChild(u);row.appendChild(b);row.appendChild(r);box.appendChild(row);
+  });
+  p.appendChild(box);
+  p.appendChild(hintBlock(0,'Ищите адрес, который начинается с xn--. Так записываются домены с буквами не из латиницы.'));
+  var after1=el('div',{style:'display:flex;flex-direction:column;gap:12px'});
+  p.appendChild(flagForm(0,function(){after(0,after1,'Подмена одной буквы на похожую из кириллицы называется омографической атакой. Поэтому в SMS и письмах не переходят по ссылкам, а открывают сайт организации через приложение или закладку.')}));
+  p.appendChild(after1);
+  if(S.solved[0])after(0,after1,'Подмена одной буквы на похожую из кириллицы называется омографической атакой. Поэтому в SMS и письмах не переходят по ссылкам, а открывают сайт организации через приложение или закладку.');
+  return p}
+
+function L2(){
+  var p=el('section',{class:'panel'});
+  p.appendChild(el('p',{class:'eyebrow',text:'Уровень 2 · антифрод'}));
+  p.appendChild(el('h2',{text:'Какая операция похожа на захват аккаунта?'}));
+  p.appendChild(el('p',{class:'muted',text:'Ночью и в другом городе человек может оказаться по обычным причинам. Ищите операцию, где совпало сразу несколько тревожных признаков. Флаг: DF{ID операции}.'}));
+  var rows=[
+    ['TX-4401','09:14','12 500 ₸','Город А','известное','Магазин','—'],
+    ['TX-4405','13:40','480 000 ₸','Город А','известное','Аренда (получатель постоянный)','—'],
+    ['TX-4409','23:55','8 900 ₸','Город А','известное','Такси','—'],
+    ['TX-4412','11:02','3 200 ₸','Город Б','новое','Кофейня','—'],
+    ['TX-4414','18:26','65 000 ₸','Город А','известное','Электроника','—'],
+    ['TX-4417','03:12','1 850 000 ₸','Другая страна','новое','Новый получатель «Альфа-Икс»','сброс пароля 8 минут назад'],
+    ['TX-4420','10:30','220 000 ₸','Город А','известное','Пополнение вклада','—'],
+    ['TX-4423','21:05','45 000 ₸','Город В','известное','Билеты','—'],
+    ['TX-4426','07:48','9 700 ₸','Город А','известное','АЗС','—'],
+    ['TX-4430','15:19','150 000 ₸','Город А','новое','Перевод другу, сумма обычная','—']
+  ];
+  var t=el('table');var th=el('tr');
+  ['ID','Время','Сумма','Город','Устройство','Получатель','Событие'].forEach(function(c){th.appendChild(el('th',{text:c}))});
+  t.appendChild(el('thead',{},[th]));
+  var tb=el('tbody');
+  rows.forEach(function(r){var tr=el('tr');r.forEach(function(c,i){tr.appendChild(el('td',{class:i===2?'num':'',text:c}))});tb.appendChild(tr)});
+  t.appendChild(tb);
+  p.appendChild(el('div',{class:'box scroll'},[t]));
+  p.appendChild(hintBlock(1,'Считайте признаки: время, сумма относительно обычной, город, новое устройство, новый получатель, недавний сброс пароля.'));
+  var a=el('div',{style:'display:flex;flex-direction:column;gap:12px'});
+  var txt='Антифрод редко ловит одно странное событие. Он складывает признаки в риск-скор и останавливает операцию, когда их много. Так работает антифрод-центр регулятора в Казахстане.';
+  p.appendChild(flagForm(1,function(){after(1,a,txt)}));p.appendChild(a);
+  if(S.solved[1])after(1,a,txt);
+  return p}
+
+function L3(){
+  var p=el('section',{class:'panel'});
+  p.appendChild(el('p',{class:'eyebrow',text:'Уровень 3 · письмо'}));
+  p.appendChild(el('h2',{text:'С какого домена письмо отправлено на самом деле?'}));
+  p.appendChild(el('p',{class:'muted',text:'Строка From видна клиенту, но её легко подделать. Правду говорят технические заголовки и проверки SPF, DKIM и DMARC. Флаг: DF{домен настоящего отправителя}.'}));
+  var hdr='Delivered-To: client@mail.amir\nReceived: from mail.org-secure.amir (mail.org-secure.amir [203.0.113.45])\n        by mx.mail.amir with ESMTP; Tue, 17 Nov 2026 02:41:08 +0000\nReturn-Path: <bounce@org-secure.amir>\nAuthentication-Results: mx.mail.amir;\n        spf=fail (sender IP is not authorized) smtp.mailfrom=org-secure.amir;\n        dkim=none;\n        dmarc=fail (p=none) header.from=demoorg.amir\nFrom: "Служба безопасности" <security@demoorg.amir>\nReply-To: support@org-secure.amir\nSubject: Срочно подтвердите операцию по карте\nX-Priority: 1';
+  p.appendChild(el('div',{class:'box'},[el('pre',{text:hdr})]));
+  p.appendChild(hintBlock(2,'Смотрите на smtp.mailfrom и Return-Path. Это адрес, с которого письмо реально отправили.'));
+  var a=el('div',{style:'display:flex;flex-direction:column;gap:12px'});
+  var txt='Письмо выглядит как от организации, но SPF и DMARC провалены. Поэтому организации включают DMARC в режиме отклонения и защищают почтовый домен. Это пункт из новых минимальных требований регулятора.';
+  p.appendChild(flagForm(2,function(){after(2,a,txt)}));p.appendChild(a);
+  if(S.solved[2])after(2,a,txt);
+  return p}
+
+function L4(){
+  var p=el('section',{class:'panel'});
+  p.appendChild(el('p',{class:'eyebrow',text:'Уровень 4 · шифр'}));
+  p.appendChild(el('h2',{text:'Перехваченное сообщение'}));
+  p.appendChild(el('p',{class:'muted',text:'Злоумышленник отправил сообщение сообщнику. Оно записано в Base64. Расшифруйте его, внутри лежит флаг.'}));
+  p.appendChild(el('div',{class:'box'},[el('pre',{text:'ZmxhZyBpcyBERntiYXNlNjRfaXNfbm90X2VuY3J5cHRpb259'})]));
+  var dIn=el('textarea',{class:'field',id:'dIn',placeholder:'Вставьте Base64',spellcheck:'false','aria-label':'Base64 для декодирования'});
+  var dOut=el('div',{class:'box mono',text:'Результат появится здесь',style:'min-height:48px;overflow-wrap:anywhere'});
+  p.appendChild(el('div',{style:'display:flex;flex-direction:column;gap:8px'},[el('h3',{text:'Декодер Base64'}),dIn,
+    el('button',{class:'btn',type:'button',text:'Декодировать',onclick:function(){var r=b64dec(dIn.value);dOut.textContent=r===null?'Не Base64':r}}),dOut]));
+  p.appendChild(hintBlock(3,'Скопируйте строку целиком в декодер и нажмите «Декодировать».'));
+  var a=el('div',{style:'display:flex;flex-direction:column;gap:12px'});
+  var txt='Base64 это не шифрование, а просто другая запись текста. Любой может прочитать её за секунду. Пароли и ключи так хранить нельзя, их защищают настоящим шифрованием и хешированием.';
+  p.appendChild(flagForm(3,function(){after(3,a,txt)}));p.appendChild(a);
+  if(S.solved[3])after(3,a,txt);
+  return p}
+
+function L5(){
+  var p=el('section',{class:'panel'});
+  p.appendChild(el('p',{class:'eyebrow',text:'Уровень 5 · перебор'}));
+  p.appendChild(el('h2',{text:'Кто подбирал пароль администратора?'}));
+  p.appendChild(el('p',{class:'muted',text:'Перед вами журнал входов в учебную систему. Найдите адрес, с которого много раз подряд пробовали пароль и в конце войти. Флаг: DF{этот адрес}.'}));
+  var lines=['09:01:12  anna    198.51.100.10   OK','09:01:40  admin   203.0.113.77    FAIL','09:01:41  admin   203.0.113.77    FAIL','09:01:42  admin   203.0.113.77    FAIL','09:01:43  admin   203.0.113.77    FAIL','09:01:44  admin   203.0.113.77    FAIL','09:01:45  admin   203.0.113.77    FAIL','09:01:46  admin   203.0.113.77    FAIL','09:01:47  admin   203.0.113.77    FAIL','09:01:48  admin   203.0.113.77    OK','09:02:30  boris   198.51.100.24   OK','09:03:05  anna    198.51.100.10   FAIL','09:03:11  anna    198.51.100.10   OK'];
+  p.appendChild(el('div',{class:'box'},[el('pre',{text:'ВРЕМЯ     ЛОГИН   АДРЕС           РЕЗУЛЬТАТ\n'+lines.join('\n')})]));
+  p.appendChild(hintBlock(4,'Одна ошибка при вводе это обычное дело. Ищите серию из многих неудач подряд с одного адреса.'));
+  var a=el('div',{style:'display:flex;flex-direction:column;gap:12px'});
+  var txt='Так выглядит перебор паролей. Защита проста: блокировка после нескольких неудач, лимит попыток, двухфакторная проверка и оповещение о серии ошибок.';
+  p.appendChild(flagForm(4,function(){after(4,a,txt)}));p.appendChild(a);
+  if(S.solved[4])after(4,a,txt);
+  return p}
+
+function Start(){
+  var p=el('section',{class:'panel'});
+  p.appendChild(el('p',{class:'eyebrow',text:'Старт'}));
+  p.appendChild(el('h2',{text:'Введите ник и начинайте'}));
+  if(idleNotice)p.appendChild(el('div',{class:'msg info',text:'Игра сброшена: страница была без действий больше 5 минут.'}));
+  p.appendChild(el('p',{class:'muted',text:'Таймер пойдёт сразу после старта. Побеждает тот, у кого больше очков, а при равенстве тот, кто решил быстрее.'}));
+  var inp=el('input',{class:'field grow',id:'nick',type:'text',maxlength:'20',placeholder:'Ваш ник',autocomplete:'off','aria-label':'Ник'});
+  function go(){var v=inp.value.trim();if(!v){inp.focus();return}S.nick=v;S.started=true;S.cur=0;idleNotice=false;lastAct=Date.now();persist();startTimer();render()}
+  inp.addEventListener('keydown',function(e){if(e.key==='Enter')go()});
+  p.appendChild(el('div',{class:'row'},[inp,el('button',{class:'btn fill',type:'button',text:'Начать',onclick:go})]));
+  return p}
+
+function Final(){
+  var p=el('section',{class:'panel final'});
+  var sc=score();
+  p.appendChild(el('p',{class:'eyebrow',text:'Игра завершена'}));
+  p.appendChild(el('h2',{text:S.nick+', результат: '+sc+' из 700'}));
+  p.appendChild(el('p',{class:'muted',text:'Покажите этот код ведущему. Он сверит результаты и назовёт победителя.'}));
+  var code=S.nick+' · '+sc+' очков · '+fmt(S.elapsed)+' · решено '+solvedCount()+'/5';
+  p.appendChild(el('div',{class:'code',text:code}));
+  var cp=el('button',{class:'btn',type:'button',text:'Скопировать'});
+  cp.addEventListener('click',function(){
+    try{navigator.clipboard.writeText(code).then(function(){cp.textContent='Скопировано'},function(){cp.textContent='Выделите код вручную'})}catch(e){cp.textContent='Выделите код вручную'}});
+  p.appendChild(cp);
+  p.appendChild(el('div',{class:'lesson'},[el('b',{text:'Главный вывод. '}),document.createTextNode('В каждом задании слабым звеном оказывалось доверие: к ссылке, к строке From, к токену, к картинке на экране. Защита начинается с проверки.')]));
+  p.appendChild(el('button',{class:'btn ghost',type:'button',text:'Начать заново',onclick:function(){S={nick:'',cur:0,solved:{},hints:{},elapsed:0,started:false,done:false};persist();render()}}));
+  return p}
+
+function render(){
+  refreshBar();
+  var st=document.getElementById('stage');st.textContent='';
+  if(closed()){
+    S={nick:'',cur:0,solved:{},hints:{},elapsed:0,started:false,done:false};
+    document.getElementById('tabs').textContent='';
+    document.getElementById('bar').hidden=true;
+    var cp=el('section',{class:'panel'});
+    cp.appendChild(el('p',{class:'eyebrow',text:'Игра закрыта'}));
+    cp.appendChild(el('h2',{text:'Время игры закончилось'}));
+    cp.appendChild(el('p',{class:'muted',text:'Эта игра больше не принимает ответы. Спасибо за участие.'}));
+    st.appendChild(cp);return}
+  if(!S.started){st.appendChild(Start());return}
+  if(S.done){st.appendChild(Final());return}
+  startTimer();
+  st.appendChild([L1,L2,L3,L4,L5][S.cur]());
+}
+['pointerdown','keydown','input','touchstart','scroll','click'].forEach(function(ev){
+  window.addEventListener(ev,function(){lastAct=Date.now()},{passive:true,capture:true});
+});
+setInterval(function(){
+  if(closed()&&!document.getElementById('bar').hidden){render();return}
+  if(S.started&&Date.now()-lastAct>IDLE_MS){
+    S={nick:'',cur:0,solved:{},hints:{},elapsed:0,started:false,done:false};
+    idleNotice=true;lastAct=Date.now();render();
+  }
+},1000);
+render();
+})();
+</script>
+</body>
+</html>
